@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Map - Import</title>
+    <style>
+        table td {
+            text-align: center;
+            border: 1px solid black;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <select id="select">
+        <option value="0" disabled selected>Select</option>
+        <option value="1">Import Data</option>
+        <option value="2">Export Data</option>
+    </select>
+    <br /><br />
+    <table>
+        <tbody id="table-body"></tbody>
+    </table>
+
+    <script>
+        
+        const select = document.getElementById('select');
+        select.addEventListener('change', e => {
+            switch(e.target.value) {
+                case "1": {
+                    loadData("./import.json");
+                    break;
+                }
+                case "2": {
+                    loadData("./export.json");
+                    break;
+                }
+                default: {}
+            }
+        })
+
+        const loadData = async (url) => {
+            const data = await fetch(url).then(x => x.json());
+            const countries = Object.keys(data);
+            const parsedData = countries.map(country => {
+                const importData = data[country];
+                const newImportData = importData.map(x => {
+                    const countryName = Object.keys(x)[0];
+                    const value = parseFloat(x[countryName]);
+
+                    if(!value) {
+                        return null;
+                    }
+
+                    return [countryName, value];
+                }).filter(x => !!x);
+
+                newImportData.sort((a, b) => b[1] - a[1]);
+
+                const total = newImportData.reduce((partialSum, a) => partialSum + a[1], 0);
+
+                return [ country, total, newImportData ];
+            });
+
+            parsedData.sort((a, b) => b[1] - a[1]);
+
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = parsedData.map(countryData => {
+                const countryName = countryData[0];
+                const total = countryData[1];
+                const importData = countryData[2].map(importedCountry => {
+                    return `
+                        <td>
+                            ${importedCountry[0]}
+                            <br />
+                            ${importedCountry[1]}
+                            <br />
+                            (${((importedCountry[1]/total) * 100).toFixed(2)}%)
+                        </td>
+                    `;
+                }).join("");
+
+                return `
+                    <tr>
+                        <td>
+                            ${countryName}
+                            <br />
+                            ${total}
+                        </td>
+                        ${importData}
+                    </tr>
+                `;
+            }).join("");
+        }
+    </script>
+</body>
+</html>
